@@ -81,8 +81,8 @@ string readFile(const string &path) {
     return ss.str();
 }
 
-bool parseConfig (const string& path, int& n, vector<vector<int>>& cost) {
-    istringstream in(path);
+bool parseConfig (const string& text, int& n, vector<vector<int>>& cost) {
+    istringstream in(text);
     vector<vector<int>> rows;
     string line;
     while(getline(in,line)) {
@@ -111,6 +111,22 @@ bool parseConfig (const string& path, int& n, vector<vector<int>>& cost) {
         }
     }
     return true;
+}
+
+void checkConfig (const string &path, string& lastConfig, int &n, vector<vector<int>> &cost, const vector<VN> &vns, bool ready) {
+    string curr = readFile(path);
+    if (curr.empty() || curr == lastConfig) return;
+    lastConfig = curr;
+    cout << "Config updated\n";
+    int n2;
+    vector<vector<int>> cost2;
+    if(!parseConfig(curr, n2, cost2) || n2 != n) {
+        cerr << "Bad config\n";
+        return;
+    }
+    cost = cost2;
+    if (ready) broadcastLinkState(n, cost, vns);
+    else cout << " Waiting for " << n - vns.size() << " more VN(s)\n";
 }
 
 // Protocol functions
@@ -170,7 +186,6 @@ void removeVN(VN &vn, int index) {
     }
 }
 
-// todo - config changing bs
 
 // main
 
@@ -188,6 +203,7 @@ int main(int argc, char **argv) {
     cout << "ON listening on TCP port " << ON_PORT << ", waiting for " << n << "nodes\n";
 
     vector<VN> vns;
+    bool ready = false;
 
     // todo while loop for polling
     
