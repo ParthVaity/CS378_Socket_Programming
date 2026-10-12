@@ -18,15 +18,51 @@ void recvAll(int fd, uint8_t *buf, int n) {
     }
 }
 
-int readConfig(const char *path, vector<vector<int>> &cost) {
-    return 1;
+
+bool parseConfig (const string& path, int& n, vector<vector<int>>& cost) {
+    ifstream f(path);
+    if (!f) return false;
+
+    vector<vector<int>> rows;
+    string line;
+
+    while(getline(f,line)) {
+        int s = line.find_first_not_of(" \t\r\n");
+        if (s == string::npos || line[s] == '#') continue;
+        
+        istringstream ss(line.substr(s));
+        vector<int> r;
+        int x;
+        while(ss>>x) r.push_back(x);
+        rows.push_back(r);
+    }
+
+    n = rows.size() + 1;
+    cost.assign(n, vector<int> (n, -1));
+    
+    for (int i = 0; i < n; i++) cost[i][i] = 0;
+    for (int i = 0; i < rows.size(); i++) {
+        for (int k = 0; k < rows[i].size(); k++) {
+            int j = i + 1 + k;
+            if (j >= n) return false;
+            cost[i][j] = cost[j][i] = rows[i][k];
+        }
+    }
+    
+    return true;
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2) { cerr << "usage: ./on <config-file>\n"; return 1; }
 
+int main(int argc, char **argv) {
+    
+    if (argc != 2) { cerr << "usage: ./on <config-file>\n"; return 1; }
+    string path = argv[1];
+    
     vector<vector<int>> cost;
-    int n = readConfig(argv[1], cost);
+    int n;
+
+    if(!parseConfig(path, n, cost)) {cerr << "Wrong config file format\n"; }
+
 
     int srv = socket(AF_INET, SOCK_STREAM, 0);
     int one = 1;
