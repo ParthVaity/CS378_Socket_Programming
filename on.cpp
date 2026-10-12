@@ -195,7 +195,8 @@ int main(int argc, char **argv) {
     string path = argv[1];
     int n;
     vector<vector<int>> cost;
-    if(!parseConfig(path, n, cost)) { cerr << "Incorrect file format"; return 1; }
+    string lastConfig = readFile(path);
+    if(!parseConfig(lastConfig, n, cost)) { cerr << "Incorrect file format"; return 1; }
 
     int srv = createSocket();
     bindSocket(srv, ON_PORT);
@@ -205,7 +206,29 @@ int main(int argc, char **argv) {
     vector<VN> vns;
     bool ready = false;
 
-    // todo while loop for polling
+    while(true) {
+        fd_set rf;
+        FD_ZERO(&rf);
+        FD_SET(srv, &rf);
+        int most = srv;
+        for(auto &vn:vns) {
+            if(vn.fd >= 0) {
+                FD_SET(vn.fd, &rf);
+                most = max(most, vn.fd);
+            }
+        }
+        timeval tv{1, 0};
+        if (select(most + 1, &rf, nullptr, nullptr, &tv) < 0) {
+            perror("select");
+            break;
+        }
+        
+        if(FD_ISSET(srv, &rf)) addNewVN(srv, vns, n, cost, ready);
+        for (int i = 0; i < vns.size(); i++) {
+            if (vns[i].fd >= 0 && FD_ISSET(vns[i].fd, &rf)) removeVN(vns[i], i);
+        }
+        checkConfig(path, lastConfig, n, cost, vns, ready);
+    }
     
     closeSocket(srv);
     return 0;
