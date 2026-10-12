@@ -140,7 +140,36 @@ void broadcastLinkState(int n, const vector<vector<int>> &cost, const vector<VN>
     cout << "Link-State pushed\n";
 }
 
-// todo - implement vn adding and removal
+// VN addition and removal
+
+void addNewVN(int srv, vector<VN> &vns, int n, const vector<vector<int>> &cost, bool &ready) {
+    int c = acceptClient(srv);
+    if (c < 0) return;
+    VN vn;
+    if (vns.size() >= MAXN || !receiveConnect(c, vn)) {
+        cerr << "Rejected a connection\n";
+        closeSocket(c);
+        return;
+    }
+    vns.push_back(vn);
+    int index = vns.size()-1;
+    char ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, vn.addr, ip, sizeof ip);
+    int port = (vn.addr[4] << 8) | vn.addr[5];
+    cout << "Connected from node " << char('A'+index) << " " << ip << ":" << port << "\n";
+    if(!ready && vns.size()>=n) { ready = true; broadcastLinkState(n, cost, vns); }
+    else if (ready) { sendLinkState(index, n, cost, vns); }
+}
+
+void removeVN(VN &vn, int index) {
+    uint8_t b;
+    if(recv(vn.fd, &b, 1, 0) <= 0) {
+        cout << "Node " << char('A' + index) << "disconnected\n";
+        closeSocket(vn.fd);
+        vn.fd = -1;
+    }
+}
+
 // todo - config changing bs
 
 // main
