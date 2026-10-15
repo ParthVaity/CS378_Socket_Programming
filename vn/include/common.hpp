@@ -20,7 +20,7 @@ struct Tuple {
 };
 
 
-struct LSP {
+struct Lsp {
     int                 origin = -1;
     uint32_t            seq = 0;
     std::vector<Tuple>  tuples;
