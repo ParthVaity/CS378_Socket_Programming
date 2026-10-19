@@ -50,6 +50,7 @@ bool VirtualNode::onOracleMessage() {
     int id = -1;
     for (auto& tup:tups) if (tup.cost == 0) id = tup.id - 'A';
     if (id == -1) return false;
+    self = id;
     printNeighbours(tups);
     neighbours.remake(tups);
     publishLsp();

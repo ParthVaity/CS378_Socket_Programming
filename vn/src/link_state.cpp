@@ -27,7 +27,8 @@ void LinkState::print() const {
     cout << "Current Link State:\n";
     for(int i=0; i<N; i++) {
         for(int j=0; j<N; j++) {
-            cout << m[i][j] << " ";
+            if (m[i][j] == -1) cout << "X ";
+            else cout << m[i][j] << " ";
         }
         cout << "\n";
     }
