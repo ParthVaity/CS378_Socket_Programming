@@ -1,3 +1,6 @@
+# Helper script to run the ON and VNs in separate terminals. Usage:
+#   ./run.sh [N] [config] [IP]
+
 set -e
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_PORT=5000

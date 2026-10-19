@@ -4,16 +4,17 @@ import struct
 import sys
 import time
 
-ON_PORT = 5000
-MAXN = 26
-CONNECT_LEN = 6            # ip(4) + port(2)
-TICK = 10.0                # seconds between graph prints (e.g. 0.01 for 10 ms)
-POLL = 1.0                 # max seconds between config checks
+ON_PORT     = 5000
+MAXN        = 26
+CONNECT_LEN = 6
+TICK        = 10.0
+POLL        = 1.0
 
 class VN:
     def __init__(self, sock, addr):
-        self.sock = sock   # TCP connection (None once closed)
-        self.addr = addr   # 6 bytes: ip + udp port, exactly as received
+        self.sock = sock
+        self.addr = addr
+
 
 def read_file(path):
     try:
@@ -22,11 +23,11 @@ def read_file(path):
     except OSError:
         return ""
 
+
 def parse_config(text):
-    """Upper-triangular text -> (n, symmetric cost matrix), or None if invalid."""
     rows = []
     for line in text.splitlines():
-        line = line.strip()                            # also drops leading tabs
+        line = line.strip()
         if not line or line.startswith("#"):
             continue
         try:
@@ -37,9 +38,9 @@ def parse_config(text):
     if m == 0 or m + 1 > MAXN:
         return None
     for i, row in enumerate(rows):
-        if len(row) != m - i:                          # row i has m-i entries
+        if len(row) != m - i:
             return None
-        if any(c == 0 or c < -1 for c in row):         # cost is -1 or > 0
+        if any(c == 0 or c < -1 for c in row):
             return None
     n = m + 1
     cost = [[-1] * n for _ in range(n)]
@@ -51,12 +52,12 @@ def parse_config(text):
             cost[i][j] = cost[j][i] = c
     return n, cost
 
+
 def tuple_bytes(j, addr, cost):
     return bytes([ord("A") + j]) + addr + struct.pack("!I", cost)
 
+
 def send_link_state(i, n, cost, vns):
-    """LINK-STATE: count(1) + count * (letter, ip, port, cost).
-    An extra VN (i >= n) is an island: it only gets its own cost-0 tuple."""
     if vns[i].sock is None:
         return
     if i < n:
@@ -69,17 +70,19 @@ def send_link_state(i, n, cost, vns):
     except OSError:
         print(f"sending to {chr(65 + i)} failed")
 
+
 def broadcast_link_state(n, cost, vns):
     for i in range(len(vns)):
         send_link_state(i, n, cost, vns)
     print("LINK-STATE pushed", flush=True)
 
+
 def print_graph(n, cost, vns, why):
-    """Print the full graph in config-file style (upper triangle, -1 = no link)."""
     print(f"--- ON graph ({why}): {n} nodes, {len(vns)} connected ---")
     for i in range(n - 1):
         print("\t" * (i + 1) + "\t".join(str(c) for c in cost[i][i + 1:]))
     print(flush=True)
+
 
 def main():
     if len(sys.argv) != 2:
@@ -106,16 +109,14 @@ def main():
 
     while True:
         watch = [srv] + [v.sock for v in vns if v.sock is not None]
-        # wake for the next tick, but at least every POLL seconds to check the config
         timeout = min(POLL, max(0.0, last_tick + TICK - time.monotonic()))
         readable, _, _ = select.select(watch, [], [], timeout)
 
-        # ---- new VN: accept + read CONNECT (ip(4) + port(2)) ----
         if srv in readable:
             conn, _ = srv.accept()
             addr = None
             if len(vns) < MAXN:
-                conn.settimeout(2)                     # a silent client can't stall the ON
+                conn.settimeout(2)
                 try:
                     data = b""
                     while len(data) < CONNECT_LEN:
@@ -125,7 +126,7 @@ def main():
                         data += chunk
                     if len(data) == CONNECT_LEN:
                         addr = data
-                except OSError:                        # includes socket.timeout
+                except OSError:                        
                     pass
 
             if addr is None:
@@ -139,13 +140,12 @@ def main():
                 port = struct.unpack("!H", addr[4:])[0]
                 print(f"CONNECT from node {chr(65 + idx)} {ip}:{port}", flush=True)
 
-                if not ready and len(vns) >= n:        # all N nodes are in
+                if not ready and len(vns) >= n: 
                     ready = True
                     broadcast_link_state(n, cost, vns)
-                elif ready:                            # extra node = island
+                elif ready:
                     send_link_state(idx, n, cost, vns)
 
-        # ---- VN activity: only EOF (disconnect) is expected ----
         for i, vn in enumerate(vns):
             if vn.sock is not None and vn.sock in readable:
                 try:
@@ -157,7 +157,6 @@ def main():
                     vn.sock.close()
                     vn.sock = None
 
-        # ---- config polling: compare contents, not mtime ----
         cur = read_file(path)
         if cur and cur != last_text:
             last_text = cur
@@ -173,7 +172,6 @@ def main():
                 else:
                     print(f"waiting for {n - len(vns)} more VN(s)", flush=True)
 
-        # ---- periodic tick: print the full graph ----
         if time.monotonic() - last_tick >= TICK:
             last_tick = time.monotonic()
             print_graph(n, cost, vns, "tick")
