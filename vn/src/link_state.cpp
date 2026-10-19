@@ -1,6 +1,7 @@
 #include "link_state.hpp"
 #include <iostream>
 #include <algorithm>
+using namespace std;
 
 bool LinkState::update (const Lsp& lsp) {
     auto it = lsp_map.find(lsp.origin);
@@ -9,15 +10,25 @@ bool LinkState::update (const Lsp& lsp) {
     return true;
 }
 
-void LinkState::print() const { //change
-    for (const auto& p : lsp_map) {
-        const Lsp& lsp = p.second;
-        std::cout << "LSP from node " << (char)('A' + lsp.origin) << ", seq: " << lsp.seq << "\n";
-        for (const auto& tup : lsp.tuples) {
-            std::cout << "  id: " << tup.id
-                      << ", ip: " << tup.ip
-                      << ", port: " << tup.port
-                      << ", cost: " << tup.cost << "\n";
+void LinkState::print() const {
+    int N = 0;
+    for (auto& l:lsp_map) {
+        N = max(N, l.first+1);
+        for (auto& t:l.second.tuples) {
+            N = max(N, (int)(t.id-'A'+1));
         }
+    }
+    vector<vector<int>> m(N, vector<int>(N, -1));
+    for (auto& l:lsp_map) {
+        for(auto& t:l.second.tuples) {
+            if(t.cost > 0) m[l.first][t.id-'A'] = t.cost;
+        }
+    }
+    cout << "Current Link State:\n";
+    for(int i=0; i<N; i++) {
+        for(int j=0; j<N; j++) {
+            cout << m[i][j] << " ";
+        }
+        cout << "\n";
     }
 }
