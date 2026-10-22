@@ -13,7 +13,7 @@ using namespace std;
 
 void VirtualNode::printNeighbours (const std::vector<Tuple> &tups) {
     for (const auto &tup : tups) {
-        printf("id: %c, ip: %u, port: %u, cost: %u\n", tup.id, tup.ip, tup.port, tup.cost);
+        cout<<"id: "<< tup.id << ", port: " << tup.port << ", cost: " << tup.cost << "\n";
     }
 }
 

@@ -28,48 +28,46 @@ def parse_config(text):
     rows = []
     for line in text.splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line or line.startswith('#'):
             continue
         try:
             rows.append([int(x) for x in line.split()])
         except ValueError:
             return None
-    m = len(rows)
-    if m == 0 or m + 1 > MAXN:
+    n = len(rows)
+    if n == 0 or n + 1 > MAXN:
         return None
     for i, row in enumerate(rows):
-        if len(row) != m - i:
+        if len(row) != n - i:
             return None
         if any(c == 0 or c < -1 for c in row):
             return None
-    n = m + 1
-    cost = [[-1] * n for _ in range(n)]
-    for i in range(n):
-        cost[i][i] = 0
+    n = n + 1
+    cost = [[-1] * n for _ in range (n)]
+    for i in range (n):
+        cost [i][i] = 0
     for i, row in enumerate(rows):
-        for k, c in enumerate(row):
+        for k,c in enumerate(row):
             j = i + 1 + k
             cost[i][j] = cost[j][i] = c
-    return n, cost
+    return n,cost
 
 
-def tuple_bytes(j, addr, cost):
-    return bytes([ord("A") + j]) + addr + struct.pack("!I", cost)
+def tuple_bytes(i, addr, cost):
+    return bytes([65 + i]) + addr + struct.pack("!I", cost)
 
 
 def send_link_state(i, n, cost, vns):
     if vns[i].sock is None:
         return
     if i < n:
-        tuples = [tuple_bytes(j, vns[j].addr, cost[i][j])
-                  for j in range(n) if cost[i][j] >= 0]
+        tuples = [tuple_bytes(j, vns[j].addr, cost[i][j]) for j in range(n) if cost[i][j] >= 0]
     else:
         tuples = [tuple_bytes(i, vns[i].addr, 0)]
     try:
         vns[i].sock.sendall(bytes([len(tuples)]) + b"".join(tuples))
     except OSError:
-        print(f"sending to {chr(65 + i)} failed")
-
+        print(f"Sending to {chr(65+i)} failed")
 
 def broadcast_link_state(n, cost, vns):
     for i in range(len(vns)):
@@ -77,31 +75,32 @@ def broadcast_link_state(n, cost, vns):
     print("LINK-STATE pushed", flush=True)
 
 
-def print_graph(n, cost, vns, why):
-    print(f"--- ON graph ({why}): {n} nodes, {len(vns)} connected ---")
-    for i in range(n - 1):
-        print("\t" * (i + 1) + "\t".join(str(c) for c in cost[i][i + 1:]))
+def print_graph(n, cost, vns, reason):
+    print(f"Current Graph ({reason}): {n} nodes, {len(vns)} connected")
+    print("\t"+"\t".join(chr(65+i) for i in range(n)))
+    for i in range(n):
+        print(chr(65+i) + "\t" + "\t".join(str(c) for c in cost[i]))
     print(flush=True)
 
 
 def main():
     if len(sys.argv) != 2:
-        print("usage: python3 on.py <config-file>")
+        print("Usage: python3 on.py <config-file>")
         return 1
     path = sys.argv[1]
 
     last_text = read_file(path)
-    parsed = parse_config(last_text)
-    if parsed is None:
-        print("bad config file")
+    parsed_file = parse_config(last_text)
+    if parsed_file is None:
+        print("Bad Config File")
         return 1
-    n, cost = parsed
+    n, cost = parsed_file
 
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
     srv.bind(("", ON_PORT))
     srv.listen(32)
-    print(f"ON listening on TCP {ON_PORT}, expecting {n} nodes", flush=True)
+    print(f"ON Listening on TCP {ON_PORT}, expecting {n} VN nodes", flush=True)
 
     vns = []
     ready = False
@@ -110,72 +109,69 @@ def main():
     while True:
         watch = [srv] + [v.sock for v in vns if v.sock is not None]
         timeout = min(POLL, max(0.0, last_tick + TICK - time.monotonic()))
-        readable, _, _ = select.select(watch, [], [], timeout)
+        read, _, _ = select.select(watch, [], [], timeout)
 
-        if srv in readable:
-            conn, _ = srv.accept()
+        if srv in read:
+            connection, _ = srv.accept()
             addr = None
-            if len(vns) < MAXN:
-                conn.settimeout(2)
+            if len(vns) < MAXN :
+                connection.settimeout(2)
                 try:
                     data = b""
                     while len(data) < CONNECT_LEN:
-                        chunk = conn.recv(CONNECT_LEN - len(data))
-                        if not chunk:
+                        current_chunk = connection.recv(CONNECT_LEN - len(data))
+                        if not current_chunk:
                             break
-                        data += chunk
+                        data += current_chunk
                     if len(data) == CONNECT_LEN:
                         addr = data
-                except OSError:                        
+                except OSError:
                     pass
 
             if addr is None:
-                print("rejected a connection")
-                conn.close()
+                print("Connection rejected")
+                connection.close()
             else:
-                conn.settimeout(None)
-                vns.append(VN(conn, addr))
-                idx = len(vns) - 1
+                connection.settimeout(None)
+                vns.append(VN(connection, addr))
+                index = len(vns) - 1
                 ip = socket.inet_ntoa(addr[:4])
                 port = struct.unpack("!H", addr[4:])[0]
-                print(f"CONNECT from node {chr(65 + idx)} {ip}:{port}", flush=True)
+                print(f"CONNECT from node {chr(65+index)} {ip}:{port}", flush=True)
 
-                if not ready and len(vns) >= n: 
+                if not ready and len(vns) >= n:
                     ready = True
                     broadcast_link_state(n, cost, vns)
                 elif ready:
-                    send_link_state(idx, n, cost, vns)
-
+                    send_link_state(index, n, cost, vns)
         for i, vn in enumerate(vns):
-            if vn.sock is not None and vn.sock in readable:
+            if vn.sock is not None and vn.sock in read:
                 try:
                     data = vn.sock.recv(1)
                 except OSError:
                     data = b""
                 if not data:
-                    print(f"node {chr(65 + i)} disconnected", flush=True)
+                    print(f"Node {chr(65+i)} disconnected", flush= True)
                     vn.sock.close()
                     vn.sock = None
-
-        cur = read_file(path)
-        if cur and cur != last_text:
-            last_text = cur
-            print("config changed", flush=True)
-            parsed = parse_config(cur)
-            if parsed is None or parsed[0] != n:
-                print("bad config (or node count changed), ignored", flush=True)
+        current_text = read_file(path)
+        if current_text and current_text != last_text:
+            last_text = current_text
+            print("Config Changed", flush= True)
+            parsed_file = parse_config(current_text)
+            if parsed_file is None or parsed_file[0] != n:
+                print("Bad config/Node count changed, ignoring file", flush= True)
             else:
-                cost = parsed[1]
-                print_graph(n, cost, vns, "config changed")
+                cost = parsed_file[1]
+                print_graph(n, cost, vns, "Config Changed")
                 if ready:
                     broadcast_link_state(n, cost, vns)
                 else:
-                    print(f"waiting for {n - len(vns)} more VN(s)", flush=True)
+                    print(f"Waiting for {n - len(vns)} more VN(s)", flush= True)
 
         if time.monotonic() - last_tick >= TICK:
             last_tick = time.monotonic()
-            print_graph(n, cost, vns, "tick")
+            print_graph(n, cost, vns, "Tick")
 
-
-if __name__ == "__main__":
+if __name__=="__main__":
     sys.exit(main())
