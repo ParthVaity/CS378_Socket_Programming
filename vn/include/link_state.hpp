@@ -1,12 +1,12 @@
 #pragma once
 
 #include <map>
-#include <ctime>
+#include <chrono>
 #include "common.hpp"
 
 class LinkState {
-    std::map<int, Lsp>      lspMap;
-    std::map<int, time_t>   timeStamp;
+    std::map<int, Lsp>                                      lspMap;
+    std::map<int, std::chrono::steady_clock::time_point>    timeStamp;
 public:
     bool                    update (const Lsp& lsp);
     void                    expire (int self, int maxAge);

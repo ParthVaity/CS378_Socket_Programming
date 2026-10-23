@@ -1,7 +1,7 @@
 #include "virtual_node.hpp"
 #include <iostream>
 #include <algorithm>
-#include <ctime>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <sys/select.h>
@@ -81,6 +81,7 @@ void VirtualNode::onTick() {
 }
 
 void VirtualNode::init(const char* onIp, const char *myIp, int udpPort) {
+    seq = (uint32_t)time(nullptr);
     mine = makeAddr(myIp, udpPort);
     udp = createUDPSocket();
     bindSocket(udp, mine);
@@ -95,7 +96,7 @@ void VirtualNode::init(const char* onIp, const char *myIp, int udpPort) {
 }
 
 void VirtualNode::run() {
-    time_t lastTick = time(nullptr);
+    auto lastTick = std::chrono::steady_clock::now();
     for(;;) {
         fd_set rfds;
         FD_ZERO(&rfds);
@@ -115,8 +116,8 @@ void VirtualNode::run() {
             ls.print(printReason, self);
             printReason = nullptr;
         }
-        time_t now = time(nullptr);
-        if (self >= 0 && (now - lastTick >= PERIOD)) {
+        auto now = std::chrono::steady_clock::now();
+        if (self >= 0 && (std::chrono::duration_cast<std::chrono::seconds>(now - lastTick).count() >= PERIOD)) {
             lastTick = now;
             onTick();
         }

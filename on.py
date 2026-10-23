@@ -71,9 +71,13 @@ def send_link_state(i, n, cost, vns):
     else:
         tuples = [tuple_bytes(i, vns[i].addr, 0)]
     try:
+        vns[i].sock.settimeout(1.0)
         vns[i].sock.sendall(bytes([len(tuples)]) + b"".join(tuples))
+        vns[i].sock.settimeout(None)
     except OSError:
         print(f"Sending to {chr(65+i)} failed")
+        vns[i].sock.close()
+        vns[i].sock = None
 
 def broadcast_link_state(n, cost, vns):
     for i in range(len(vns)):
@@ -121,7 +125,7 @@ def main():
         if srv in read:
             connection, _ = srv.accept()
             addr = None
-            if len(vns) < MAXN :
+            if len(vns) < MAXN or any(v.sock is None for v in vns):
                 connection.settimeout(2)
                 try:
                     data = b""

@@ -9,18 +9,22 @@ bool LinkState::update (const Lsp& lsp) {
     auto it = lspMap.find(lsp.origin);
     if (it != lspMap.end() && lsp.seq <= it->second.seq) return false;
     lspMap[lsp.origin] = lsp;
-    timeStamp[lsp.origin] = time(nullptr);
+    timeStamp[lsp.origin] = std::chrono::steady_clock::now();
     return true;
 }
 
 void LinkState::expire (int self, int maxAge) {
-    time_t now = time(nullptr);
+    auto now = std::chrono::steady_clock::now();
     for (auto it = lspMap.begin(); it != lspMap.end();) {
-        if (it->first != self && now - timeStamp[it->first] > maxAge) {
-            timeStamp.erase(it->first);
-            it = lspMap.erase(it);
+        if (it->first != self) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - timeStamp[it->first]).count();
+            if(elapsed > maxAge) {
+                timeStamp.erase(it->first);
+                it = lspMap.erase(it);
+                continue;
+            }
         }
-        else it++;
+        it++;
     }
 }
 
