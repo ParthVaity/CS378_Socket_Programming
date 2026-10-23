@@ -75,6 +75,7 @@ void VirtualNode::onLspMessage() {
 
 void VirtualNode::onTick() {
     publishLsp();
+    ls.expire(self, MAX_AGE);
     ls.print("Tick", self);
     // ls.printRoutes(self);        Optional support for Dijkstra to complete the LS routing algo
 }

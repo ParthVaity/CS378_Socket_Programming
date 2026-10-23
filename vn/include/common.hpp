@@ -10,7 +10,8 @@ const int MAXN      = 26;       // Max Nodes allowed
 const int ENTRY_SZ  = 11;       // Size of tuple: letter(1) + ip(4) + port(2) + cost(4)
 const int HDR       = 6;        // Size of LSP header: origin(1) + seq(4) + count(1)
 const int PERIOD    = 10;       // Time period between each LSP 
-const int PRINT_WAIT  = 500;     // Time to wait before printing on each config change (so that lsp can propogate)
+const int PRINT_WAIT= 500;     // Time to wait before printing on each config change (so that lsp can propogate)
+const int MAX_AGE   = PERIOD * 3;
 
 
 struct Tuple {

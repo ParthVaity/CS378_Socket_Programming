@@ -6,15 +6,27 @@
 using namespace std;
 
 bool LinkState::update (const Lsp& lsp) {
-    auto it = lsp_map.find(lsp.origin);
-    if (it != lsp_map.end() && lsp.seq <= it->second.seq) return false;
-    lsp_map[lsp.origin] = lsp;
+    auto it = lspMap.find(lsp.origin);
+    if (it != lspMap.end() && lsp.seq <= it->second.seq) return false;
+    lspMap[lsp.origin] = lsp;
+    timeStamp[lsp.origin] = time(nullptr);
     return true;
+}
+
+void LinkState::expire (int self, int maxAge) {
+    time_t now = time(nullptr);
+    for (auto it = lspMap.begin(); it != lspMap.end();) {
+        if (it->first != self && now - timeStamp[it->first] > maxAge) {
+            timeStamp.erase(it->first);
+            it = lspMap.erase(it);
+        }
+        else it++;
+    }
 }
 
 void LinkState::print(const char* reason, int self) const {
     vector<vector<int>> m(MAXN, vector<int>(MAXN, -1));
-    for (auto& l:lsp_map) {
+    for (auto& l:lspMap) {
         for(auto& t:l.second.tuples) {
             if(t.cost > 0) m[l.first][t.id-'A'] = t.cost;
         }
@@ -42,7 +54,7 @@ void LinkState::print(const char* reason, int self) const {
     for(int i = 0; i < MAXN; i++) if(seen[i]) ids.push_back(i);
     int N = ids.size();
 
-    cout << "Current Graph State: (" << reason << ")\n";
+    cout << "Current Visible Graph State: (" << reason << ")\n";
     cout<<"\t";
     for(int i = 0; i < N; i++) cout << char('A'+ids[i]) << ((i + 1 < N) ? "\t" : "\n");
     for(int i = 0; i < N; i++) {
@@ -58,7 +70,7 @@ void LinkState::print(const char* reason, int self) const {
 
 void LinkState::printRoutes(int src) const {
     int N = 0;
-    for (auto& l:lsp_map) {
+    for (auto& l:lspMap) {
         N = max(N, l.first+1);
         for (auto& t:l.second.tuples) {
             N = max(N, (int)(t.id-'A'+1));
@@ -66,7 +78,7 @@ void LinkState::printRoutes(int src) const {
     }
     if (src < 0 || src >= N) return;
     vector<vector<int>> m(N, vector<int>(N, -1));
-    for (auto& l:lsp_map) {
+    for (auto& l:lspMap) {
         for(auto& t:l.second.tuples) {
             if(t.cost > 0) m[l.first][t.id-'A'] = t.cost;
         }

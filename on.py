@@ -64,7 +64,10 @@ def send_link_state(i, n, cost, vns):
     if vns[i].sock is None:
         return
     if i < n:
-        tuples = [tuple_bytes(j, vns[j].addr, cost[i][j]) for j in range(n) if cost[i][j] >= 0]
+        tuples = [tuple_bytes(j, vns[j].addr, cost[i][j]) 
+                  for j in range(n) 
+                  if cost[i][j] >= 0
+                  and (i == j or (j < len(vns) and vns[j].sock is not None))]
     else:
         tuples = [tuple_bytes(i, vns[i].addr, 0)]
     try:
@@ -80,7 +83,7 @@ def broadcast_link_state(n, cost, vns):
 
 def print_graph(n, cost, vns, reason):
     current_conns = live(vns)
-    print(f"Current Graph ({reason}): {n} nodes, {current_conns} connected")
+    print(f"Current Full Graph ({reason}): {n} nodes, {current_conns} connected")
     print("\t"+"\t".join(chr(65+i) for i in range(n)))
     for i in range(n):
         print(chr(65+i) + "\t" + "\t".join(str(c) for c in cost[i]))
@@ -162,10 +165,12 @@ def main():
                 except OSError:
                     data = b""
                 if not data:
-                    print(f"Node {chr(65+i)} disconnected")
                     vn.sock.close()
                     vn.sock = None
+                    print(f"Node {chr(65+i)} disconnected")
                     print(f"{live(vns)} connected", flush= True)
+                    if ready:
+                        broadcast_link_state(n, cost, vns)
         current_text = read_file(path)
         if current_text and current_text != last_text:
             last_text = current_text
