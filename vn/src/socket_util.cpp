@@ -24,7 +24,7 @@ sockaddr_in makeAddr(const char *ip, int port) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     if (inet_pton(AF_INET, ip, &addr.sin_addr) != 1) {
-        cerr << "Bad IP " << &ip << "\n";
+        cerr << "Bad IP " << ip << "\n";
         exit(1);
     }
     return addr;

@@ -80,7 +80,7 @@ void LinkState::printRoutes(int src) const {
 
     vector<long> dist(N, LONG_MAX);
     vector<int> prev(N, -1);
-    priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> pq;
+    priority_queue<pair<long,int>,vector<pair<long,int>>,greater<pair<long,int>>> pq;
     dist[src] = 0;
     pq.push({0,src});
     while(!pq.empty()) {
