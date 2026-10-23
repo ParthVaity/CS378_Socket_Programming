@@ -163,9 +163,9 @@ def main():
                     data = b""
                 if not data:
                     print(f"Node {chr(65+i)} disconnected")
-                    print(f"{live(vns)} connected", flush= True)
                     vn.sock.close()
                     vn.sock = None
+                    print(f"{live(vns)} connected", flush= True)
         current_text = read_file(path)
         if current_text and current_text != last_text:
             last_text = current_text
