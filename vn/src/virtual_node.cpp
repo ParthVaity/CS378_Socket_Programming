@@ -12,6 +12,7 @@
 using namespace std;
 
 void VirtualNode::printNeighbours (const std::vector<Tuple> &tups) {
+    cout<<"Current Neighbours:\n";
     for (const auto &tup : tups) {
         cout<<"id: "<< tup.id << ", port: " << tup.port << ", cost: " << tup.cost << "\n";
     }
@@ -54,6 +55,7 @@ bool VirtualNode::onOracleMessage() {
     printNeighbours(tups);
     neighbours.remake(tups);
     publishLsp();
+    ls.print("Config Changed");
     return true;
 }
 
@@ -71,7 +73,7 @@ void VirtualNode::onLspMessage() {
 
 void VirtualNode::onTick() {
     publishLsp();
-    ls.print();
+    ls.print("Tick");
     // ls.printRoutes(self);        Optional support for Dijkstra to complete the LS routing algo
 }
 

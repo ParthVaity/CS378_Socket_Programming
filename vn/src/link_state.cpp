@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <queue>
 #include <climits>
+#include <set>
 using namespace std;
 
 bool LinkState::update (const Lsp& lsp) {
@@ -12,28 +13,33 @@ bool LinkState::update (const Lsp& lsp) {
     return true;
 }
 
-void LinkState::print() const {
-    int N = 0;
+void LinkState::print(const char* reason) const {
+    set<int> seen;
     for (auto& l:lsp_map) {
-        N = max(N, l.first+1);
+        seen.insert(l.first);
         for (auto& t:l.second.tuples) {
-            N = max(N, (int)(t.id-'A'+1));
+            seen.insert(t.id-'A');
         }
     }
+    vector<int> ids(seen.begin(),seen.end());
+    int N = ids.size();
     vector<vector<int>> m(N, vector<int>(N, -1));
+    for(int i = 0; i < N; i++) m[i][i] = 0;
     for (auto& l:lsp_map) {
         for(auto& t:l.second.tuples) {
-            if(t.cost > 0) m[l.first][t.id-'A'] = t.cost;
+            int i = lower_bound(ids.begin(),ids.end(), l.first) - ids.begin();
+            int j = lower_bound(ids.begin(),ids.end(), t.id - 'A') - ids.begin();
+            if(i != j && t.cost > 0) m[i][j] = t.cost;
         }
     }
-    cout << "Current Link State:\n";
-    for(int i=0; i<N; i++) {
-        for(int j=0; j<N; j++) {
-            if (i==j) cout<<"0\t";
-            else if (m[i][j] == -1) cout << "X\t";
-            else cout << m[i][j] << "\t";
+    cout << "Current Graph State: (" << reason << ")\n";
+    cout<<"\t";
+    for(int i = 0; i < N; i++) cout << char('A'+ids[i]) << ((i + 1 < N) ? "\t" : "\n");
+    for(int i = 0; i < N; i++) {
+        cout << char('A' + ids[i]) <<"\t";
+        for (int j = 0; j < N ;j++) {
+            cout << m[i][j] << ((j + 1 < N) ? "\t" : "\n");
         }
-        cout << "\n";
     }
 }
 
