@@ -72,6 +72,12 @@ void LinkState::printRoutes(int src) const {
         }
     }
 
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            if(m[i][j] > 0 && m[j][i] < 0) m[i][j] = -1;
+        }
+    }
+
     vector<long> dist(N, LONG_MAX);
     vector<int> prev(N, -1);
     priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> pq;
@@ -100,7 +106,7 @@ void LinkState::printRoutes(int src) const {
         }
         int hop = d;
         while(prev[hop] != src) hop = prev[hop];
-        cout << char('A'+d) << ": cost " << dist[d] <<", nexxt hop " << char('A'+hop) << "\n";    
+        cout << char('A'+d) << ": cost " << dist[d] <<", next hop " << char('A'+hop) << "\n";    
     }
     cout.flush();
 }
