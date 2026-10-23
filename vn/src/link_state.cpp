@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <queue>
 #include <climits>
-#include <set>
 using namespace std;
 
 bool LinkState::update (const Lsp& lsp) {
@@ -13,32 +12,46 @@ bool LinkState::update (const Lsp& lsp) {
     return true;
 }
 
-void LinkState::print(const char* reason) const {
-    set<int> seen;
-    for (auto& l:lsp_map) {
-        seen.insert(l.first);
-        for (auto& t:l.second.tuples) {
-            seen.insert(t.id-'A');
-        }
-    }
-    vector<int> ids(seen.begin(),seen.end());
-    int N = ids.size();
-    vector<vector<int>> m(N, vector<int>(N, -1));
-    for(int i = 0; i < N; i++) m[i][i] = 0;
+void LinkState::print(const char* reason, int self) const {
+    vector<vector<int>> m(MAXN, vector<int>(MAXN, -1));
     for (auto& l:lsp_map) {
         for(auto& t:l.second.tuples) {
-            int i = lower_bound(ids.begin(),ids.end(), l.first) - ids.begin();
-            int j = lower_bound(ids.begin(),ids.end(), t.id - 'A') - ids.begin();
-            if(i != j && t.cost > 0) m[i][j] = t.cost;
+            if(t.cost > 0) m[l.first][t.id-'A'] = t.cost;
         }
     }
+
+    auto linked = [&](int i, int j) {return m[i][j] > 0 && m[j][i] > 0;};
+    
+    vector<bool>seen (MAXN, false);
+    queue<int> q;
+    if (self >= 0) {
+        seen[self] = true;
+        q.push(self);
+    }
+    while(!q.empty()) {
+        int u=q.front();
+        q.pop();
+        for(int v = 0; v < MAXN; v++){
+            if (!seen[v] && linked(u,v)) {
+                seen[v] = true;
+                q.push(v);
+            }
+        }
+    }
+    vector<int> ids;
+    for(int i = 0; i < MAXN; i++) if(seen[i]) ids.push_back(i);
+    int N = ids.size();
+
     cout << "Current Graph State: (" << reason << ")\n";
     cout<<"\t";
     for(int i = 0; i < N; i++) cout << char('A'+ids[i]) << ((i + 1 < N) ? "\t" : "\n");
     for(int i = 0; i < N; i++) {
         cout << char('A' + ids[i]) <<"\t";
         for (int j = 0; j < N ;j++) {
-            cout << m[i][j] << ((j + 1 < N) ? "\t" : "\n");
+            int a = ids[i];
+            int b = ids[j];
+            int c = (i==j) ? 0 : (linked(a,b) ? max(m[a][b], m[b][a]) : -1);
+            cout << c << ((j + 1 < N) ? "\t" : "\n" );
         }
     }
 }

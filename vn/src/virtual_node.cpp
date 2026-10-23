@@ -55,7 +55,7 @@ bool VirtualNode::onOracleMessage() {
     printNeighbours(tups);
     neighbours.remake(tups);
     publishLsp();
-    ls.print("Config Changed");
+    ls.print("Config Changed", self);
     return true;
 }
 
@@ -73,7 +73,7 @@ void VirtualNode::onLspMessage() {
 
 void VirtualNode::onTick() {
     publishLsp();
-    ls.print("Tick");
+    ls.print("Tick", self);
     // ls.printRoutes(self);        Optional support for Dijkstra to complete the LS routing algo
 }
 
