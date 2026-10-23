@@ -8,4 +8,5 @@ class LinkState {
 public:
     bool update (const Lsp& lsp);
     void print() const;
+    void printRoutes(int src) const;
 };

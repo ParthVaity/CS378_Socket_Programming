@@ -72,6 +72,7 @@ void VirtualNode::onLspMessage() {
 void VirtualNode::onTick() {
     publishLsp();
     ls.print();
+    // ls.printRoutes(self);        Optional support for Dijkstra to complete the LS routing algo
 }
 
 void VirtualNode::init(const char* onIp, const char *myIp, int udpPort) {
