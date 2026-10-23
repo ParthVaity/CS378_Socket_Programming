@@ -14,7 +14,7 @@ using namespace std;
 void VirtualNode::printNeighbours (const std::vector<Tuple> &tups) {
     cout<<"Current Neighbours:\n";
     for (const auto &tup : tups) {
-        cout<<"id: "<< tup.id << ", port: " << tup.port << ", cost: " << tup.cost << "\n";
+        cout<<"id: "<< tup.id << ", port: " << ntohs(tup.port) << ", cost: " << tup.cost << "\n";
     }
 }
 
@@ -34,7 +34,7 @@ void VirtualNode::flood(const Lsp &lsp, const sockaddr_in* from) {
     vector<uint8_t> buff = encodeLSP(lsp);
     for (auto& v:neighbours.allNeighbours()) {
         const Neighbour& n = v.second;
-        if (from && NeighbourTable::sameAddr(n.addr, *from)) continue;
+        if (from && sameAddr(n.addr, *from)) continue;
         for (int t=0; t<2; t++)  sendto(udp, buff.data(), buff.size(), 0, (const sockaddr*)&n.addr, sizeof(n.addr));
     }
 }

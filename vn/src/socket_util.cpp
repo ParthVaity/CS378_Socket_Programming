@@ -67,3 +67,7 @@ bool sendAll(int fd, const uint8_t* buf, int n) {
 void closeSocket(int fd) {
     close(fd);
 }
+
+bool sameAddr(const sockaddr_in &a, const sockaddr_in &b) {
+    return a.sin_addr.s_addr == b.sin_addr.s_addr && a.sin_port == b.sin_port;
+}
