@@ -1,6 +1,7 @@
 #pragma once
 
 #include <netinet/in.h>
+#include <chrono>
 #include "common.hpp"
 #include "neighbour_table.hpp"
 #include "link_state.hpp"
@@ -10,6 +11,8 @@ class VirtualNode {
     int udp = -1;
     int self = -1;
     uint32_t seq = 0;
+    const char* printReason = nullptr;
+    std::chrono::steady_clock::time_point printTime;
     sockaddr_in mine{};
     NeighbourTable neighbours;
     LinkState ls;

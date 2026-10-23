@@ -51,11 +51,13 @@ bool VirtualNode::onOracleMessage() {
     int id = -1;
     for (auto& tup:tups) if (tup.cost == 0) id = tup.id - 'A';
     if (id == -1) return false;
+    bool first = (self < 0);
     self = id;
     printNeighbours(tups);
     neighbours.remake(tups);
     publishLsp();
-    ls.print("Config Changed", self);
+    printReason = first ? "Init" : "Config Changed";
+    printTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(PRINT_WAIT);
     return true;
 }
 
@@ -98,7 +100,7 @@ void VirtualNode::run() {
         FD_ZERO(&rfds);
         FD_SET(tcp, &rfds);
         FD_SET(udp, &rfds);
-        timeval tv{1, 0};
+        timeval tv{0, 100000};
         if (select(max(tcp, udp)+1, &rfds, nullptr, nullptr, &tv) < 0) {
             perror("select");
             break;
@@ -108,6 +110,10 @@ void VirtualNode::run() {
             break;
         }
         if (FD_ISSET(udp, &rfds)) onLspMessage();
+        if (printReason && std::chrono::steady_clock::now() >= printTime) {
+            ls.print(printReason, self);
+            printReason = nullptr;
+        }
         time_t now = time(nullptr);
         if (self >= 0 && (now - lastTick >= PERIOD)) {
             lastTick = now;
