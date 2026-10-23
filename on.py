@@ -56,6 +56,9 @@ def parse_config(text):
 def tuple_bytes(i, addr, cost):
     return bytes([65 + i]) + addr + struct.pack("!I", cost)
 
+def live(vns):
+    return sum(1 for v in vns if v.sock is not None)
+
 
 def send_link_state(i, n, cost, vns):
     if vns[i].sock is None:
@@ -76,7 +79,8 @@ def broadcast_link_state(n, cost, vns):
 
 
 def print_graph(n, cost, vns, reason):
-    print(f"Current Graph ({reason}): {n} nodes, {len(vns)} connected")
+    current_conns = live(vns)
+    print(f"Current Graph ({reason}): {n} nodes, {current_conns} connected")
     print("\t"+"\t".join(chr(65+i) for i in range(n)))
     for i in range(n):
         print(chr(65+i) + "\t" + "\t".join(str(c) for c in cost[i]))
@@ -133,16 +137,23 @@ def main():
                 connection.close()
             else:
                 connection.settimeout(None)
-                vns.append(VN(connection, addr))
-                index = len(vns) - 1
+                index = next((k for k,v in enumerate(vns) if v.sock is None), len(vns))
+                if index == len(vns):
+                    vns.append(VN(connection, addr))
+                else:
+                    vns[index] = VN(connection, addr)
                 ip = socket.inet_ntoa(addr[:4])
                 port = struct.unpack("!H", addr[4:])[0]
-                print(f"CONNECT from node {chr(65+index)} {ip}:{port}", flush=True)
+                print(f"CONNECT from node {chr(65+index)} {ip}:{port}")
+                print(f"{live(vns)} connected", flush=True)
 
-                if not ready and len(vns) >= n:
-                    ready = True
+                if not ready :
+                    if len(vns) >= n and all(v.sock is not None for v in vns[:n]): 
+                        ready = True
+                        broadcast_link_state(n, cost, vns)
+                elif index < n:
                     broadcast_link_state(n, cost, vns)
-                elif ready:
+                else:
                     send_link_state(index, n, cost, vns)
         for i, vn in enumerate(vns):
             if vn.sock is not None and vn.sock in read:
@@ -151,7 +162,8 @@ def main():
                 except OSError:
                     data = b""
                 if not data:
-                    print(f"Node {chr(65+i)} disconnected", flush= True)
+                    print(f"Node {chr(65+i)} disconnected")
+                    print(f"{live(vns)} connected", flush= True)
                     vn.sock.close()
                     vn.sock = None
         current_text = read_file(path)
@@ -167,7 +179,7 @@ def main():
                 if ready:
                     broadcast_link_state(n, cost, vns)
                 else:
-                    print(f"Waiting for {n - len(vns)} more VN(s)", flush= True)
+                    print(f"Waiting for {n - live(vns)} more VN(s)", flush= True)
 
         if time.monotonic() - last_tick >= TICK:
             last_tick = time.monotonic()
